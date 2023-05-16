@@ -1,0 +1,217 @@
+# https://tex.stackexchange.com/questions/7770/file-extensions-related-to-latex-etc
+
+Data/*
+
+owid-covid-data
+
+# Ha veletlenul letrejonne
+home
+
+# Some typical directories
+**/html/**
+**/build/**
+**/dist/**
+**/__MAC/**
+**/__MACOSX/**
+**/.ipynb_*/**
+
+# Sublime files
+*.cache
+# *.sublime-project
+*.sublime-package
+*.sublime-session
+*.sublime-workspace
+
+# Darktable files
+*.dtstyle
+
+# Backup files
+*.backup*
+*-backup*
+*.old
+*.old2
+stdout_temp
+
+# Maven files
+*.repositories
+
+
+# Dropbox files
+*.dropbox
+.DS_Store
+*conflict*
+*Conflict*
+
+
+# cmake template files
+**/CMakeFiles/**
+
+# LaTeX temporary files and those, which are less relevant
+*.soc
+*.spl
+*.auxlock
+*.xwm
+*.ilg
+*.idx
+*.drv
+*.clo
+*.pag
+*.loa
+*.ind
+*.pl
+*.enc
+*.lof
+*.lot
+*.upa
+*.thm
+*.lol
+*.fnd
+*.xoj
+*.lbx
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.toc
+*.synctex(busy)
+*.synctex.gz*
+*.autosave
+# LaTeX Beamer
+*.snm
+*.vrb
+*.nav
+*.out
+# BibTeX
+*.bbl
+*.blg
+*.brf
+*.bcf
+*.run.xml
+*-blx.bib
+# Other automatically generated files
+*.sav
+# documentclass elsarticle (Elsevier journals)
+*.spl
+
+# Amiket nem szabad kitorolni (ezeket a GIT-hez is hozzaadom)
+# .tikz
+# .sty
+# .bib
+# .tex
+
+# Amiket nem szabad kitorolni amugy, de a GIT-hez nem adom hozza
+*.bbx
+*.ldf
+*.cbx
+*.def
+*.ins
+*.css
+*.dtx
+*.dvi
+*.fdd
+*.map
+*.html
+*.vf
+*.cls
+*.fd
+*.bst
+*.pfb
+*.tfm
+*.tsv
+
+# Amiket ki lehet torolni, illetve semmilyen formaban sem erdemes szinkronizalni
+*.sublime-workspace
+
+
+# Matlab/Simulink template files [git:NO, sync:NO]
+**/slprj/**
+*.slxc
+
+# Matlab/Simulink template files [git:NO, sync:YES]
+*.slx.original
+*.mdl.original
+# *.mat
+# *.fig
+*~
+*.asv
+
+# Media files [git:NO, sync:YES]
+# *.html
+*.eps
+*.gif
+# *.png
+# *.PNG
+# *.jpg
+# *.JPG
+# *.jpeg
+*.ogg
+*.bmp
+*.mpeg
+*.avi
+*.mp3
+*.mp4
+*.osp
+*.svg
+*.wav
+*.ps
+*.webm
+*.tif
+*.tiff
+# Gimp files
+*.xcf
+
+
+# Document files [git:NO, sync:YES]
+# *.txt
+*.out
+# *.pdf
+*.djvu
+*.odt
+*.ods
+*.odg
+*.doc
+*.docx
+# *.xls
+# *.xlsx
+# *.csv
+# Libreoffice lock files:
+.~*#
+# Digitalis repjegy kiterjesztese:
+*.ics
+# Readme files
+*.md
+
+# Packages
+*.7z
+*.dmg
+*.gz
+*.iso
+*.rar
+*.tar
+# *.zip
+
+
+# Binaries [git:NO, sync:YES]
+*.o
+*.so
+*.bin
+*.jar
+*.class
+*.pyc
+*.bak
+*.exe
+
+# publish.xsl
+# *.xsl
+
+
+# Databases
+*.sqlite
+*.db
+# .*
+# !.gitignore
+
+
+
+# find . -size +1M | egrep -v "*\.(pdf|avi|zip|jpg|webm|bmp)$" | egrep -v ".git/" >> .gitignore
+
