@@ -146,6 +146,10 @@ for k = 1:N-1
     Sp_val = diag(T.ParamStd(k,:)'.^2);
     v_val  = T.ImGainRate(k);
 
+    % 2023.05.17. (május 17, szerda), 13:19
+    % A small correction
+    Mx_val(J.R) = max(Mx_val(J.R),1);
+
     % Prediction error.
     mu_x_kp1 = full(Fn_Mx_pp(Mx_val,Mu_val,Mp_val,v_val));
     Mx_pp_error(k) = norm(mu_x_kp1 - T.x(k+1,:)')^2;

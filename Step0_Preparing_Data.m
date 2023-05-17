@@ -1,24 +1,16 @@
-function [T,P,s,T_Ms] = Step0_Preparing_Data(P,r)
+function [T,P,s] = Step0_Preparing_Data(P,r)
 arguments
 %%
     P
     r.Clip = false;
-    r.Date_End = datetime("today");
+    r.Date_End = datetime(2022,02,06);
 end
 %%
 %  Author: Peter Polcz (ppolcz@gmail.com) 
 %  Created on 2022. July 07. (2022a)
 
 CSV_OWID_TABLE_HUN = "Data/owid-covid-data-HUN-2023-02-10.csv";
-XLS_WASTEWATER_DATA = "Data/NNK_Nyers_uj.xlsx";
-XLS_HOSPITALIZATION_DATA = "Data/Korhaz_trend.xlsx";
-XLS_NEW_HOSP_ADMISSION_2021 = "Data/new_adm_HUN_2021.xlsx";
-
-%% Load parameters
-
-% Read the appropriate parameter table (.xlsx), then, generate the
-% parameter trajectories
-% [P,Q,~] = Epid_Par.Get(r.CountryCode + r.ParamSetting);
+XLS_CG_WW_Daily_Data = "Data/CG_WW_Daily_Data.xls";
 
 
 %%
@@ -30,37 +22,23 @@ T = epid_load_cowid(CSV_OWID_TABLE_HUN, ...
 % Merge P and T
 T = removevars(T,intersect(P.Properties.VariableNames,T.Properties.VariableNames));
 T = synchronize(T,P,'first');
-T.Properties.UserData = parsepropval('create',T.Properties.UserData,P.Properties.UserData);
-
 T = renamevars(T,"New_Cases","New_Cases_off");
 
-%% Read szennyviz
+%% Read wastewater data
 
-% For compatibility reasons
-T.Szennyviz_Nyers = zeros(height(T),1) * NaN;
-T.Szennyviz = zeros(height(T),1) * NaN;
-T.Szennyviz_Nv = zeros(height(T),1) * NaN;
+CG_WW_Daily_Data = readtimetable(XLS_CG_WW_Daily_Data);
+CG_WW_Daily_Data = renamevars(CG_WW_Daily_Data,"CG_WW_Daily_Data","WW");
 
-% Optional:
-[T,T_Ms] = Step0_Read_Wastewater_data(XLS_WASTEWATER_DATA,T,"Clip",r.Clip,"Date_End",r.Date_End);
+T = synchronize(T,CG_WW_Daily_Data);
 
-% Added on 2022.10.19. (október 19, szerda), 14:03
+Idx = find(~isnan(T.WW),1,"last");
+Date_Last_WW = T.Date(Idx);
+
 Date_Last_H = T.Properties.UserData.Date_Last_Available_H;
-Date_Last_Szv = T.Properties.UserData.Date_Last_Szennyviz;
-T.Properties.UserData.Date_Last_Relevant_New_Cases = max(Date_Last_H - 4,Date_Last_Szv - 2);
+T.Properties.UserData.Date_Last_WW = Date_Last_WW;
+T.Properties.UserData.Date_Last_Relevant_New_Cases = max(Date_Last_H - 4,Date_Last_WW - 2);
 
-%% Read korhaz
-
-% Optional:
-T = Step0_Read_Hospitalization_data( ...
-    XLS_HOSPITALIZATION_DATA, ...
-    XLS_NEW_HOSP_ADMISSION_2021, ...
-    T,"Clip",r.Clip,"Date_End",Date_Last_Szv);
-
-% Optional:
-T.H_off_ma(T.Date > T.Properties.UserData.Date_Last_Available_H) = NaN;
-T.H_off(T.Date > T.Properties.UserData.Date_Last_Available_H) = NaN;
-T.D_off(T.Date > T.Properties.UserData.Date_Last_Available_H) = NaN;
+%% Spline interpolation for medical data
 
 Nt = height(T);
 Knot_Density = 14;

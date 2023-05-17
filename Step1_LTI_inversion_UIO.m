@@ -143,8 +143,8 @@ T = gen_depvars_from_LPIAHD(T);
 %%
 
 Date_Last_H = T.Properties.UserData.Date_Last_Available_H;
-Date_Last_Szv = T.Properties.UserData.Date_Last_Szennyviz;
-Date_Last_Relevant_New_Cases = max(Date_Last_H - 4,Date_Last_Szv - 2);
+Date_Last_WW = T.Properties.UserData.Date_Last_WW;
+Date_Last_Relevant_New_Cases = max(Date_Last_H - 4,Date_Last_WW - 2);
 
 T.H(T.Date > T.Properties.UserData.Date_Last_Available_H) = NaN;
 T.Infected(T.Date > Date_Last_Relevant_New_Cases) = NaN;

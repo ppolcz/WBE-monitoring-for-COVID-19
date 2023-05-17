@@ -67,12 +67,16 @@ J.Daily_All = Cnt;
 J.Daily_New = Cnt;
 J.Rc = Cnt;
 J.Rt = Cnt;
+J.Infectious = Cnt;
+J.Infected = J.Daily_All;
+J.New_Cases = J.Daily_New;
 
 h_sym = [
     L + P + I + A + H
     beta * (P + I + s.delta*A) * S / Np
     beta * (1/s.zeta + s.gamma/s.rhoI + s.delta*(1-s.gamma)/s.rhoA)
     beta * (1/s.zeta + s.gamma/s.rhoI + s.delta*(1-s.gamma)/s.rhoA) * S / Np
+    P + I + s.delta * A
     ];
 
 matlabFunction(f_sym,'File','Fn_SLPIAHDR_ode','Vars',{x,p,beta,nu,omega});
@@ -116,6 +120,7 @@ h.desc__Output_dim1 = 'All infected';
 h.desc__Output_dim2 = 'Daily new infected';
 h.desc__Output_dim3 = 'Basic reproduction number (R0)';
 h.desc__Output_dim4 = 'Time-dependent (effective) reproduction number (Rt)';
+h.desc__Output_dim5 = 'Infectious';
 
 hvar = {};
 hvar.val = zeros(size(h.val));

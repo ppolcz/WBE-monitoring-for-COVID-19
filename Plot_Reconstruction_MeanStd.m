@@ -13,7 +13,7 @@ Plot_Colors
 
 %% Visualization
 
-XLim = [ datetime(2020,08,01) T.Properties.UserData.Date_Last_Szennyviz ];
+XLim = [ datetime(2020,08,01) T.Properties.UserData.Date_Last_WW ];
 
 fig = figure(args.FigNr);
 % fig.Position(3) = 1494;
@@ -29,33 +29,25 @@ Tl = tiledlayout(15,1,"TileSpacing","tight","Padding","compact");
 
 tidx = 1;
 % -------
+
 [Ax,tidx] = nt(tidx,5);
+plot_mean_var(T.Date,T.New_Cases,T.OutputStd(:,2));
+Ax(end).YLim(1) = 0;
+ptitle(12,'New cases: mean and 95\% CI')
+
+% -------
+
+[Ax(end+1),tidx] = nt(tidx,5);
 plot_mean_var(T.Date,T.TrRate,T.TrRateStd);
 ylim([0,3])
+ptitle(12,'Transmission rate: mean and 95\% CI')
 
-ptitle(12,'Transmission rate')
-
-% Leg = legend([Bar Pl Pl2],strsplit(LegEntries_NC + '; New cases (with wastewater); New cases (without wastewater)',"; "), ...
-%     "Interpreter","latex","FontSize",args.FontSize,"Location","northwest","Box","on");
-% Leg.NumColumns = 2;
+% -------
 
 [Ax(end+1),tidx] = nt(tidx,5);
 plot_mean_var(T.Date,T.ImLossRate,T.ImLossRateStd);
 ylim([0,0.02])
-
-ptitle(12,'Immunity loss rate')
-
-% Leg(end+1) = legend( ...
-%     'Rate of immunity loss ($\omega$)', ...
-%     'Immunization rate ($\nu$)', ...
-%     "Interpreter","latex","FontSize",args.FontSize,"Location","northwest");
-% ptitle(12,'Estimated waning (proportion of \textbf{R} loosing immunity within 24 hours) and immunization (proportion of \textbf{S} gaining immunity within 24 hours)')
-
-[Ax(end+1),tidx] = nt(tidx,5);
-plot_mean_var(T.Date,T.New_Cases,T.OutputStd(:,2));
-Ax(end).YLim(1) = 0;
-
-ptitle(12,'New cases')
+ptitle(12,'Immunity loss rate: mean and 95\% CI')
 
 % -------
 
@@ -80,21 +72,13 @@ for idx = 1:numel(Ax)
     drawnow 
 end
 
-for i = 1:numel(Leg)
-    Leg(i).Position(2) = Leg(i).Position(2) - 0.005;
+fig.Position(3:4) = [1317 596];
+
+DIR = "Results/fig";
+if ~exist(DIR,"dir")
+    mkdir(DIR)
 end
-
-return
-%%
-fig = gcf;
-fig.Position(3) = 1494;
-fig.Position(4) = 1825;
-
-Today = datetime("today");
-Today.Format = "uuuu-MM-dd";
-fMain = "/home/ppolcz/Dropbox/Peti/Munka/01_PPKE_2020/Dokumentaciok/Docs_CsutakB_PhD/07_COVID-Szennyviz/actual/fig/Reconstruction-" + string(Today) + ".pdf";
-clipboard("copy",fMain)
-exportgraphics(fig,fMain,'ContentType','vector')
+exportgraphics(fig,DIR + "/MeanStd.pdf",'ContentType','vector')
 
 end
 

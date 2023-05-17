@@ -164,9 +164,6 @@ methods (Static)
             % 'Szennyviz_Shift' 'Szennyviz_Shift'  1
             };
 
-        % Waning function's table
-        W = readtable(xls,"ReadRowNames",true,"Sheet","WaningPulse");
-
         % Uncertainty of each parameter
         U = readtable(xls,"Sheet","Uncertainty");
         u = U.Variables;
@@ -198,34 +195,6 @@ methods (Static)
 
         T = table2timetable(T,"RowTimes","Date");
 
-        %% Detect waning basis functions
-
-        Qw = Q(Q.wmax > 0,:);
-
-        Bases_Raw = zeros(height(T),height(Qw)-1);
-        for i = 1:height(Qw)-1
-            Bases_Raw(:,i) = S(d_Start , 0 , Qw.Date(i) , Qw.TransitionLength(i) , 1 , Qw.Date(i+1) , Qw.TransitionLength(i+1) , 0 , d_End)';
-        end
-
-        % If wnoms have the same value, the given bases are considered one.
-        [S_wnom,S_Unique_Idx,S_Idx] = unique(Qw(1:end-1,["wnom","wmax"]));
-        S_n = height(S_wnom);
-
-        Bases = zeros(height(T),S_n + height(W));
-        for i = 1:S_n
-            Bases(:,i) = sum(Bases_Raw(:,S_Idx == i),2);
-        end
-        for i = 1:height(W)
-            Bases(:,S_n+i) = G(d_Start , 0 , W.PulseDate(i) , W.PulseWidth(i) , 1 , d_End)';
-        end
-
-        T.Phases = Bases_Raw;
-        T.Waning_Bases = Bases;
-        T.Properties.UserData.wnom = [ Qw.wnom(S_Unique_Idx) ; W.wnom ];
-        T.Properties.UserData.wmax = [ Qw.wmax(S_Unique_Idx) ; W.wmax ]; 
-        T.Properties.UserData.Waning_desc = [ Qw.Properties.RowNames(S_Unique_Idx) ; W.Properties.RowNames ];
-        T.Properties.UserData.Phases_desc = Qw.Properties.RowNames(1:end-1);
-    
         % 2023.04.21. (április 21, péntek), 11:47
         T = removevars(T,setdiff(unique([ VarMap(:,1) ; VarMap(:,2) ]),VarMap(end-1:end,1)));
 

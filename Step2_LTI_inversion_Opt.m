@@ -1,7 +1,7 @@
-function [T,Q] = Step2_LTI_inversion_Opt(T,Q,args)
+function [T,Q] = Step2_LTI_inversion_Opt(T,Q,Q_WW,args)
 arguments
-    T,Q
-    args.UseWasteWater = false;
+    T,Q,Q_WW
+    args.UseWasteWater = true;
 end
 %%
 %  Author: Peter Polcz (ppolcz@gmail.com)
@@ -13,13 +13,6 @@ Timer_5bix = pcz_dispFunctionName;
 
 LPIAHD_Str = ["L","P","I","A","H","D"];
 
-%% 
-
-% Q_Szv = Epid_Par.Read("HUN_22Szept_Szv_Mtp");
-
-% 2022.12.14. (december 14, szerda), 11:27
-Q_Szv = Epid_Par.Read("HUN_Wastewater_Mtp");
-
 %%
 
 import casadi.*
@@ -29,9 +22,9 @@ Verbose = true;
 % Idorendi sorrendben a kovetkezo datumok a fontosak:
 Date_Start_MPC = max(datetime(2020,03,03),T.Date(1));
 Date_Last_H = T.Properties.UserData.Date_Last_Available_H;
-Date_Last_Szv = T.Properties.UserData.Date_Last_Szennyviz;
-Date_Last_Relevant_New_Cases = max(Date_Last_H - 4,Date_Last_Szv - 2);
-Date_End_REC = max(Date_Last_H,Date_Last_Szv);
+Date_Last_WW = T.Properties.UserData.Date_Last_WW;
+Date_Last_Relevant_New_Cases = max(Date_Last_H - 4,Date_Last_WW - 2);
+Date_End_REC = max(Date_Last_H,Date_Last_WW);
 Date_End_PRED = Date_End_REC + 10;
 
 %% Adjust and expand time range of data table (T) if necessary
@@ -132,43 +125,33 @@ z2_var_guess = z2_var_fh(z2_guess);
 
 % ---
 
-% Relevant section of the parameter table
-ldx_Q = Date_Start_MPC < Q.Date + Q.TransitionLength;
-ldx_Q(1:end-1) = Date_Start_MPC < Q.Date(2:end) + Q.TransitionLength(2:end);
-Q_MPC = Q(ldx_Q,:);
-
-% Relevant section of the parameter table
-ldx_Q_Szv = Date_Start_MPC < Q_Szv.Date + Q_Szv.TransitionLength;
-ldx_Q_Szv(1:end-1) = Date_Start_MPC < Q_Szv.Date(2:end) + Q_Szv.TransitionLength(2:end);
-Q_Szv_MPC = Q_Szv(ldx_Q_Szv,:);
-
 % Variant dominance pattern (+visualization)
-P = epid_get_variant_dominance_pattern(Q_MPC,T.Date,"EnableOverlapping",true);
-P_Szv = epid_get_variant_dominance_pattern(Q_Szv_MPC,T.Date,"EnableOverlapping",true);
+P = epid_get_variant_dominance_pattern(Q,T.Date,"EnableOverlapping",true);
+P_WW = epid_get_variant_dominance_pattern(Q_WW,T.Date,"EnableOverlapping",true);
 
 % Check dimension of the relevant parameter table
 nPattern = width(P.Pattern);
-nQ_MPC = height(Q_MPC);
-assert(nPattern == nQ_MPC,"Relevant parameter table width (%d) != (%d) No. patterns",nQ_MPC,nPattern)
+nQ = height(Q);
+assert(nPattern == nQ,"Relevant parameter table width (%d) != (%d) No. patterns",nQ,nPattern)
 
 % [GUESS] Initial guess for pI
-pI_var_guess = Q_MPC.Pr_I;
+pI_var_guess = Q.Pr_I;
 pI_var_bounds = pI_var_guess .* (1 + [-1 1]*0.25);
 pI_guess = P.Pattern * pI_var_guess;
 
 % [GUESS] Initial guess for pH
-pH_var_guess = Q_MPC.Pr_H;
+pH_var_guess = Q.Pr_H;
 pH_var_bounds = pH_var_guess .* (1 + [-1 1]*0.5);
 pH_guess = P.Pattern * pH_var_guess;
 
 % [GUESS] Initial guess for pD
-pD_var_guess = Q_MPC.Pr_D;
+pD_var_guess = Q.Pr_D;
 pD_var_bounds = pD_var_guess .* (1 + [-1 1]*0.5);
 pD_guess = P.Pattern * pD_var_guess;
 
-% [GUESS] Initial guess for the szennyviz multiplier
-wconst_var_guess = Q_Szv_MPC.Szennyviz_Mtp*0 + 1;
-wconst_var_bounds = wconst_var_guess .* (1 + [-1 1]*1);
+% [GUESS] Initial guess for the WW multiplier (inverse of secretion coeff.)
+WW_Mtp_var_guess = Q_WW.WW_Mtp*0 + 1;
+WW_Mtp_var_bounds = WW_Mtp_var_guess .* [0.3 3];
 
 %% Free decision variables along the horizon (column-wise).
 
@@ -221,68 +204,36 @@ pD_var = helper.new_var('pD',size(pD_var_guess),1,'str','full', ...
     'lb',pD_var_bounds(:,1),'ub',pD_var_bounds(:,2));
 pD = P.Pattern * pD_var;
 
-wconst_var = helper.new_var('wconst',size(wconst_var_guess),1,'str','full', ...
-    'lb',wconst_var_bounds(:,1),'ub',wconst_var_bounds(:,2));
-wconst = P_Szv.Pattern * wconst_var;
+s = struct;
+WW_Mtp_var_cell = cellfun(@(str) {SX.sym(['W_Mtp_',str],1,1)},Q_WW.Properties.RowNames);
+for i = 1:numel(WW_Mtp_var_cell)
+    s.(WW_Mtp_var_cell{i}.name) = WW_Mtp_var_cell{i};
+end
+WW_Mtp_var = vertcat(WW_Mtp_var_cell{:});
+helper.add_sym("var",WW_Mtp_var,'name','WW_Mtp','lb',WW_Mtp_var_bounds(:,1),'ub',WW_Mtp_var_bounds(:,2));
+WW_Mtp = P_WW.Pattern * WW_Mtp_var;
 
-Idx_Alpha = find(strcmp(Q_Szv_MPC.Properties.RowNames,'Alpha'));
-Idx_Delta = find(strcmp(Q_Szv_MPC.Properties.RowNames,'Delta'));
-Idx_OmicronBA1 = Idx_Delta + 1;
-Idx_OmicronBA5 = Idx_OmicronBA1 + 1;
-
-% helper.add_ineq_con('wconst',...
-%     wconst_var(Idx_Alpha)*1.2 - wconst_var(Idx_Delta), ...
-%     "ub",0)
-% 
-% helper.add_ineq_con('wconst',...
-%     wconst_var(Idx_Delta)*1.5 - wconst_var(Idx_OmicronBA1), ...
-%     "ub",0)
-% 
-% helper.add_ineq_con('wconst',...
-%     wconst_var(Idx_Delta)*1.5 - wconst_var(Idx_OmicronBA5), ...
-%     "ub",0)
-
-w_BA1 = wconst_var(Idx_OmicronBA1);
-w_BA5 = wconst_var(Idx_OmicronBA5);
-
-% 2023.04.24. (április 24, hétfő), 12:50
-% Fraction = 5;
-% helper.add_ineq_con('wconst',...
-%     (Fraction - 1) / Fraction * w_BA1 - w_BA5, ...
-%     "ub",0)
-% helper.add_ineq_con('wconst',...
-%     (Fraction + 1) / Fraction * w_BA1 - w_BA5, ...
-%     "lb",0)
-
-% wconst_var = helper.new_var('wconst',1,1,'lb',-0.6,'ub',0.6);
-% wconst = P.Pattern * wconst_var_guess + wconst_var;
+% These variables were assigned before:
+% s.W_Mtp_Original
+% s.W_Mtp_Alpha
+% s.W_Mtp_Delta
+% s.W_Mtp_OmicronBA12
+% s.W_Mtp_OmicronBA5
+% s.W_Mtp_OmicronBQ1
 
 %% Objective function
 
-% Eddig ez mukodott es nagyon jol
-wrel_SzvO = [
-    1 % Transient
-    1 % Wild type
-    1 % Alpha
-    1 % Delta
-    5 % BA.1
-    5 % BA.2 
-    10 % BA.4
-    10 % BA.5
-    10 % Future
-    ]*args.UseWasteWater; 
-
 % 2023.01.14. (január 14, szombat), 10:57
-wrel_SzvO = [
+wrel_WW = [
     5 % Transient
     15 % Wild type
     15 % Alpha
     15 % Delta
     5 % BA.1
     5 % BA.2 
-    5 % BA.4
     5 % BA.5
-    5 % Future
+    5 % BA.5--Tp1
+    5 % BQ.1
     ]*args.UseWasteWater; 
 
 wrel_H = [
@@ -292,15 +243,14 @@ wrel_H = [
     1 % Delta
     1 % BA.1
     1 % BA.2 
-    1 % BA.4
     1 % BA.5
-    1 % Future
+    1 % BA.5--Tp1
+    1 % BQ.1
     ]*args.UseWasteWater + (1-args.UseWasteWater);
 
-wRefH   = 1 * P.Pattern(:,1:end-1) * wrel_H(ldx_Q(1:end-1));
+wRefH   = 1 * P.Pattern(:,1:end-1) * wrel_H;
 wRefD   = 1e-5;
-wRefSzv_O = 1e-5 * P.Pattern(:,1:end-1) * wrel_SzvO(ldx_Q(1:end-1));
-wRefSzv_Nv = wRefSzv_O * 0;
+wRefWW = 1e-5 * P.Pattern(:,1:end-1) * wrel_WW;
 wsthpH  = 1e10;
 wsthz1  = 1e-3;
 wdevpH  = [
@@ -323,14 +273,11 @@ Idx_Href = find(T.Day_MPC > 0 & T.Date <= Date_Last_H);
 H_ref = T.H_off_ma(Idx_Href);
 helper.add_obj('H_error',(x(Idx_Href,J.H) - H_ref).^2,wRefH(Idx_Href));
 
-D_ref = T.D_off_NNK(Idx_Href);
+D_ref = T.D_off(Idx_Href);
 helper.add_obj('D_error',(x(Idx_Href,J.D) - D_ref).^2,wRefD);
 
-Idx_SzvRef = find(T.Day_MPC > 0 & T.Date <= Date_Last_Szv & ~isnan(T.Szennyviz));
-helper.add_obj('Szv_error',(z2(Idx_SzvRef) - wconst(Idx_SzvRef).*T.Szennyviz(Idx_SzvRef)).^2,wRefSzv_O(Idx_SzvRef));
-
-% Idx_SzvRef_Nv = setdiff(Idx_SzvRef,find(isnan(T.Szennyviz_Nv)));
-% helper.add_obj('Szv_error_Nv',(z2(Idx_SzvRef_Nv) - wconst(Idx_SzvRef_Nv).*T.Szennyviz_Nv(Idx_SzvRef_Nv)).^2,wRefSzv_Nv(Idx_SzvRef_Nv));
+Idx_WW_Ref = find(T.Day_MPC > 0 & T.Date <= Date_Last_WW & ~isnan(T.WW));
+helper.add_obj('WW_error',(z2(Idx_WW_Ref) - WW_Mtp(Idx_WW_Ref).*T.WW(Idx_WW_Ref)).^2,wRefWW(Idx_WW_Ref));
 
 % Smooth daily new cases
 Delta_z1 = (z1(1:end-2) - z1(2:end-1)).^2;
@@ -351,7 +298,8 @@ Deviation_pI = sumsqr(pI_var - pI_var_guess);
 helper.add_obj('Deviation_pI',Deviation_pI,wdevpI)
 
 % 2023.04.24. (április 24, hétfő), 12:53
-helper.add_obj('Deviation_wconst_Omicron',(w_BA1-w_BA5).^2,1e9);
+helper.add_obj('Deviation_W_Mtp_Omicron',(s.W_Mtp_OmicronBA12-s.W_Mtp_OmicronBA5).^2,1e9);
+helper.add_obj('Deviation_W_Mtp_Omicron',(s.W_Mtp_OmicronBA5-s.W_Mtp_OmicronBQ1).^2,5e8);
 
 %% Equality constraints (initialize)
 
@@ -359,7 +307,7 @@ helper.add_obj('Deviation_wconst_Omicron',(w_BA1-w_BA5).^2,1e9);
 % infectious people
 Infectious = x(:,J.P) + x(:,J.I) + T.Param(:,K.Rel_beta_A) .* x(:,J.A);
 Eq_z2 = Infectious - z2;
-helper.add_eq_con( Eq_z2(Idx_SzvRef) )
+helper.add_eq_con( Eq_z2(Idx_WW_Ref) )
 
 % Update the parameter trajectory with the free decision parameter
 % variables
@@ -390,8 +338,8 @@ Fn_var = NL_solver.helper.gen_var_mfun;
 %% Solve MPC
 
 Solution_found = false;
-try                       % x[383x5],   z1[382],     z2[382],     pI[5],       pH[5],       pD[5],       wconst[3]
-    sol_guess = full(Fn_var(x_var_guess,z1_var_guess,z2_var_guess,pI_var_guess,pH_var_guess,pD_var_guess,wconst_var_guess));
+try                       % x[383x5],   z1[382],     z2[382],     pI[5],       pH[5],       pD[5],       WW_Mtp[3]
+    sol_guess = full(Fn_var(x_var_guess,z1_var_guess,z2_var_guess,pI_var_guess,pH_var_guess,pD_var_guess,WW_Mtp_var_guess));
 
     Timer_2xw3 = pcz_dispFunctionName('Calling the solver (with initial guess)');
     ret = NL_solver.solve([],sol_guess);
@@ -418,16 +366,40 @@ display(F_MPC,'Achieved cost')
 %% Retain and store solution
 
 pI = helper.get_value('pI');
-Q.Pr_I(ldx_Q) = pI;
+Q.Pr_I = pI;
 
 pH = helper.get_value('pH');
-Q.Pr_H(ldx_Q) = pH;
+Q.Pr_H = pH;
 
 pD = helper.get_value('pD');
-Q.Pr_D(ldx_Q) = pD;
+Q.Pr_D = pD;
 
-wconst = helper.get_value('wconst');
-Q.Szennyviz_Mtp(ldx_Q) = wconst([(1:end-2) end-2 end-1 end-1 end-1 end]);
+WW_Mtp = helper.get_value('WW_Mtp');
+Q_WW.WW_Mtp = WW_Mtp;
+Q_WW.qC = 1./WW_Mtp;
+
+Q.WW_Mtp = zeros(height(Q),1);
+Q([ "Transient"
+    "Original"
+    "Alpha"
+    "Delta"
+    "OmicronBA1"
+    "OmicronBA2"
+    "OmicronBA5"
+    "OmicronBA5_Tp1"
+    "OmicronBQ1"
+    "Future" ],"WW_Mtp") ...
+    = Q_WW([ "Transient"
+             "Original"
+             "Alpha"
+             "Delta"
+             "OmicronBA12"
+             "OmicronBA12"
+             "OmicronBA5"
+             "OmicronBA5"
+             "OmicronBQ1"
+             "Future" ],"WW_Mtp");
+Q.qC = 1./Q.WW_Mtp;
 
 x = x_fh(helper.get_value('x'));
 z1 = z1_fh(helper.get_value('z1'));
@@ -435,7 +407,7 @@ z2 = z2_fh(helper.get_value('z2'));
 pH = P.Pattern * pH;
 pI = P.Pattern * pI;
 pD = P.Pattern * pD;
-Szennyviz_Mtp = P_Szv.Pattern * wconst;
+WW_Mtp = P_WW.Pattern * WW_Mtp;
 
 for C = LPIAHD_Str
     T.(C) = x(:,J.(C));
@@ -448,7 +420,7 @@ T.New_Cases = z1;
 % T.Pr_D = pD;
 T.Param(:,[K.pI,K.pH,K.pD]) = [pI,pH,pD];
 
-T.Szennyviz_Mtp = Szennyviz_Mtp;
+T.WW_Mtp = WW_Mtp;
 
 %%
 

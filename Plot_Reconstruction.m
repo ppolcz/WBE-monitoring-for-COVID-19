@@ -22,7 +22,7 @@ end
 
 [~,~,~,J] = epid_ode_model_8comp;
 
-XLim = [ datetime(2020,08,01) T.Properties.UserData.Date_Last_Szennyviz ];
+XLim = [ datetime(2020,08,01) T.Properties.UserData.Date_Last_WW ];
 
 fig = figure(args.FigNr);
 fig.Position(3) = 1494;
@@ -51,12 +51,13 @@ Leg.NumColumns = 2;
 ylim([0 120000])
 
 [Ax(end+1),tidx] = nt(tidx,3);
-Sh = plot_mean_var(T.Date,T.ImLossRate,T.ImLossRateStd);
+Sh = plot_mean_var(T.Date,T.ImLossRate,T.ImLossRateStd,[0 0 0],"PMLineStyle",'-',"LineWidth",1);
 Pl(end+1) = Sh(1);
 Pl(end+1) = plot(T.Date,T.ImGainRate,'Color',Color_2);
+Pl_Unc = area(datetime(1991,03,20) + [0 1],[1 1],'FaceColor',[0 0 0],'FaceAlpha',0.2,'EdgeColor',[0,0,0]);
 % Pl(end+1) = plot(T0.Date,T0.ImLossRate,'--','Color',Pl(end-1).Color);
 % Pl(end+1) = plot(T0.Date,T0.ImGainRate,'--','Color',Pl(end-1).Color);
-Leg(end+1) = legend([Pl(end-1),Sh(4),Pl(end)],{ ...
+Leg(end+1) = legend([Pl(end-1),Pl_Unc,Pl(end)],{ ...
     'Rate of immunity loss ($\omega$),', ...
     'end its uncertainty ($\pm 95\%$ CI)', ...
     'Immunization rate ($\nu$)'}, ...
@@ -132,17 +133,22 @@ Ax(end).YLim(1) = 0;
 
 % Infectious people
 [Ax(end+1),tidx] = nt(tidx,4);
+Sh = plot_mean_var(T.Date,T.Infectious,T.OutputStd(:,J.Infectious),[0 0 0],"PMLineStyle",'-',"LineWidth",1);
+Pl = Sh(1);
 % plot(T.Date,T.Szennyviz_Nyers,'--','Color',[0.4660 0.6740 0.1880]);
-Pl(end+1) = plot(T.Date,T.Szennyviz .* T.Szennyviz_Mtp,'Color',[0.8500 0.3250 0.0980]);
+Pl(end+1) = plot(T.Date,T.WW .* T.WW_Mtp,'Color',[0.8500 0.3250 0.0980]);
 % Pl(end+1) = plot(T.Date,T.Szennyviz_Nv .* T.Szennyviz_Mtp);
+Pl(end+1) = plot(T0.Date,T0.Infectious,'k--');
 Pl(end+1) = plot(T.Date,T.Infectious,'k');
-plot(T0.Date,T0.Infectious,'k--');
-Leg(end+1) = plegend(args.FontSize,"northwest",...
-    ... "Gene copy conc. (raw);" + ...
-    "Gene copy concentration (scaled);" ...
-    ... + LegEntries_SzV + ";" ...
-    + "Infectious (with wastewater);Infectious (without wastewater)");
-Leg(end).NumColumns = 1;
+Pl_Unc = area(datetime(1991,03,20) + [0 1],[1 1],'FaceColor',[0 0 0],'FaceAlpha',0.2,'EdgeColor',[0,0,0]);
+Leg(end+1) = legend([Pl(end-2) Pl(end-1) Pl(end) Pl_Unc], {
+    'Gene copy concentration (scaled)'
+    'Infectious (without wastewater)'
+    'Infectious (with wastewater)'
+    'and its uncertainty ($\pm 95\%$ CI)'
+    }, ...
+    "Interpreter","latex","FontSize",args.FontSize,"Location","northwest", ...
+    "NumColumns",1,"Box","on");
 % ptitle(14,'Number infectious people compared with the pathogen concentration of waste water')
 
 [Ax(end+1),tidx] = nt(tidx,3);
@@ -179,8 +185,6 @@ Pl(1).LineWidth = 1.2;
 Ax(1).XLim = XLim;
 drawnow 
 
-return
-
 % -------
 
 for idx = 1:numel(Ax)
@@ -206,17 +210,11 @@ for i = 1:numel(Leg)
     Leg(i).Position(2) = Leg(i).Position(2) - 0.005;
 end
 
-return
-%%
-fig = gcf;
-fig.Position(3) = 1494;
-fig.Position(4) = 1825;
-
-Today = datetime("today");
-Today.Format = "uuuu-MM-dd";
-fMain = "/home/ppolcz/Dropbox/Peti/Munka/01_PPKE_2020/Dokumentaciok/Docs_CsutakB_PhD/07_COVID-Szennyviz/actual/fig/Reconstruction-" + string(Today) + ".pdf";
-clipboard("copy",fMain)
-exportgraphics(fig,fMain,'ContentType','vector')
+DIR = "Results/fig";
+if ~exist(DIR,"dir")
+    mkdir(DIR)
+end
+exportgraphics(fig,DIR + "/Reconstruction.pdf",'ContentType','vector')
 
 end
 

@@ -2,8 +2,8 @@ function [T,Quantity,Data] = Step5_ManyPRED_ODE(T,args)
 arguments
     T
     args.Start_Date = datetime(2022,05,01);
-    args.End_Date = T.Properties.UserData.Date_Last_Szennyviz + 90;
-    args.ImLossRate = [0.005, 0.0055, 0.006, 0.0065, 0.007, 0.0075 ];
+    args.End_Date = T.Properties.UserData.Date_Last_WW + 90;
+    args.ImLossRate = [0.006, 0.0065, 0.007, 0.0075 0.01 0.0125 0.015 0.0175 0.02 0.0225];
     args.RelTrRate = 1;
     args.TrRateMtp = (0.85:0.05:1.15).^1.5;
     % ---
@@ -31,8 +31,8 @@ end
 
 Date_Start_Pred = args.Start_Date;
 Date_Last_H = T.Properties.UserData.Date_Last_Available_H;
-Date_Last_Szv = T.Properties.UserData.Date_Last_Szennyviz;
-Date_Last_Relevant_New_Cases = max(Date_Last_H - 4,Date_Last_Szv - 2);
+Date_Last_WW = T.Properties.UserData.Date_Last_WW;
+Date_Last_Relevant_New_Cases = max(Date_Last_H - 4,Date_Last_WW - 2);
 
 R = T;
 
@@ -84,7 +84,7 @@ for i = 1:N-1
     T.ImLossRate(i+1) = T.ImLossRate(i) + D_ImLoss * (0.95)^i;
     T.Param(i+1,K.pH) = T.Param(i,K.pH) + D_pH * (0.95)^i;
 end
-T_clean = T(:,["S","L","P","I","A","H","D","R", "New_Cases", "Infected", "Infectious", "Rt", "Param", "TrRate", "ImLossRate", "ImGainRate", "TrRate_Ref", "L_iPeriod", "P_iPeriod", "I_iPeriod"]);
+T_clean = T(:,["S","L","P","I","A","H","D","R", "New_Cases", "Infected", "Infectious", "Rt", "Param", "TrRate", "ImLossRate", "ImGainRate", "TrRate_Ref"]);
 
 N_Tr = args.TransitionLengthTr; if isempty(N_Tr), N_Tr = args.TransitionLength; end
 N_Ls = args.TransitionLengthLs; if isempty(N_Ls), N_Ls = args.TransitionLength; end
@@ -151,217 +151,5 @@ for Scenario = 1:height(AllComb)
     end
 
 end
-%%
-
-if ~args.Plot || args.FigNr <= 0
-    return
-end
-
-load("../Data/T_Agens_2022_10_17.mat")
-
-%%
-
-if isscalar(args.XLim)
-    args.XLim(2) = T.Date(end);
-end
-
-fig = figure(args.FigNr);
-Tl = tiledlayout(3,2,'TileSpacing','tight','Padding','tight','TileIndexing','columnmajor');
-
-ldx = R.Date <= Date_Last_Relevant_New_Cases;
-
-Ax = [];
-for q = 1:Nr_Qty
-    Ax = [Ax ; nexttile];
-    hold on; grid on; box on;
-
-    qty = [Data{q,:}];
-    Mean = mean(qty,2);
-    Std = std(qty,0,2);
-
-    if Quantity{q,2} == "New cases"
-        plot(T_Agens.Date,T_Agens.New_Cases*5,'Color',[0.4660 0.6740 0.1880])
-    elseif Quantity{q,2} == "Hospitalized patients"
-        plot(T_Agens.Date,T_Agens.H,'Color',[0.4660 0.6740 0.1880])
-    end        
-
-    plot_mean_var(T.Date(1:end-1),Mean,Std,[0.9290 0.6940 0.1250],"FaceAlpha",0.2);
-    % plot(T.Date(1:end-1),[Data{q,:}],'Color',[0.9290 0.6940 0.1250])
-    plot(R.Date(ldx),Quantity{q,1}(R(ldx,:)),'LineWidth',2,'Color','red');
-    ptitle(14,Quantity{q,2})
-    drawnow
-end
-
-T.Properties.UserData.Link6 = linkprop(Ax,"XLim");
-Ax(1).XLim = [R.Date(1) T.Date(end)];
-
-DRange = R.Date(1):T.Date(end);
-for ax = Ax'
-    plot_vertical_milestone(ax,Date_Start_Pred,"Prediction");
-    ax.XTick = DRange(day(DRange) == 1);
-    ax.XMinorGrid = 'on';
-    ax.XAxis.MinorTick = 'off';
-    ax.XAxis.MinorTickValues = DRange(weekday(DRange) == 1);    
-end
-
-%%
-
-fig = figure(args.FigNr+400);
-Tl = tiledlayout(2,1,'TileSpacing','tight','Padding','tight','TileIndexing','columnmajor');
-
-ldx = R.Date <= Date_Last_Relevant_New_Cases;
-
-Ax = [];
-for q = 1:Nr_Qty
-    if ismember(Quantity{q,2},["New cases","Hospitalized patients"])
-        Ax = [Ax ; nexttile];
-        Logger.latexify_axis(Ax(end),12);
-        hold on; grid on; box on;
-    
-        qty = [Data{q,:}];
-        Mean = mean(qty,2);
-        Std = std(qty,0,2);
-    
-        % if Quantity{q,2} == "New cases"
-        %     PlAgent = plot(T_Agens.Date,T_Agens.New_Cases*5,'Color',[0.4660 0.6740 0.1880],'LineWidth',2);
-        % elseif Quantity{q,2} == "Hospitalized patients"
-        %     PlAgent = plot(T_Agens.Date,T_Agens.H,'Color',[0.4660 0.6740 0.1880],'LineWidth',2);
-        % end        
-    
-        if Quantity{q,2} == "Hospitalized patients"
-            PlOff = plot(R.Date,R.H_off_ma,'Color',[0.8500 0.3250 0.0980],'LineWidth',2);
-        end
-
-        Sh = plot_mean_var(T.Date(1:end-1),Mean,Std,[0.9290 0.6940 0.1250],"FaceAlpha",0.2);
-        % plot(T.Date(1:end-1),[Data{q,:}],'Color',[0.9290 0.6940 0.1250])
-        PlRec = plot(R.Date(ldx),Quantity{q,1}(R(ldx,:)),'LineWidth',2,'Color',[0 0.4470 0.7410]);
-        title(Quantity{q,2},"Interpreter","latex","FontSize",16)
-        drawnow
-    end
-end
-
-T.Properties.UserData.Link6 = linkprop(Ax,"XLim");
-Ax(1).XLim = args.XLim;
-
-DRange = R.Date(1):T.Date(end);
-for ax = Ax'
-    plot_vertical_milestone(ax,Date_Start_Pred,"Prediction");
-    ax.XTick = DRange(weekday(DRange) == 1);
-    ax.XMinorGrid = 'on';
-    ax.XAxis.MinorTick = 'off';
-    ax.XAxis.MinorTickValues = DRange;
-    
-    legend(ax,[PlOff,PlRec,Sh(1),Sh(4)],["Official data","Reconstruction","Pred. -- mean","Pred. -- 95\% CI"],"Interpreter","latex","FontSize",12)
-end
-
-
-%%
-
-fig = figure(args.FigNr+500);
-Tl = tiledlayout(2,1,'TileSpacing','tight','Padding','tight','TileIndexing','columnmajor');
-
-ldx = R.Date <= Date_Last_Relevant_New_Cases;
-
-Ax = [];
-for q = 1:Nr_Qty
-    if ismember(Quantity{q,2},["Possible scenarios for the rate of immunity loss","Possible scenarios for the transmission rate"])
-        Ax = [Ax ; nexttile];
-        Logger.latexify_axis(Ax(end),12);
-        hold on; grid on; box on;
-    
-        qty = [Data{q,:}];
-        Mean = mean(qty,2);
-        Std = std(qty,0,2);
-        
-        Sh = plot_mean_var(T.Date(1:end-1),Mean,Std,[0.9290 0.6940 0.1250],"FaceAlpha",0.2);
-        PlRec = plot(R.Date(ldx),Quantity{q,1}(R(ldx,:)),'LineWidth',2,'Color',[0 0.4470 0.7410]);
-        title(Quantity{q,2},"Interpreter","latex","FontSize",16)
-        drawnow
-    end
-end
-
-T.Properties.UserData.Link6 = linkprop(Ax,"XLim");
-Ax(1).XLim = args.XLim;
-
-DRange = R.Date(1):T.Date(end);
-for ax = Ax'
-    plot_vertical_milestone(ax,Date_Start_Pred,"Prediction");
-    ax.XTick = DRange(weekday(DRange) == 1);
-    ax.XMinorGrid = 'on';
-    ax.XAxis.MinorTick = 'off';
-    ax.XAxis.MinorTickValues = DRange;
-    
-    legend(ax,[PlRec,Sh(1),Sh(4)],["Reconstruction","Pred. -- mean","Pred. -- 95\% CI"],"Interpreter","latex","FontSize",12)
-end
-
-%%
-
-fig = figure(args.FigNr+600);
-Tl = tiledlayout(4,1,'TileSpacing','tight','Padding','tight','TileIndexing','columnmajor');
-
-ldx = R.Date <= Date_Last_Relevant_New_Cases;
-
-Ax = [];
-for q = 1:Nr_Qty
-    if ismember(Quantity{q,2},["New cases","Hospitalized patients","Possible scenarios for the rate of immunity loss","Possible scenarios for the transmission rate"])
-        Ax = [Ax ; nexttile];
-        Logger.latexify_axis(Ax(end),12);
-        hold on; grid on; box on;
-    
-        qty = [Data{q,:}];
-        Mean = mean(qty,2);
-        Std = std(qty,0,2);
-    
-        % if Quantity{q,2} == "New cases"
-        %     PlAgent = plot(T_Agens.Date,T_Agens.New_Cases*5,'Color',[0.4660 0.6740 0.1880],'LineWidth',2);
-        % elseif Quantity{q,2} == "Hospitalized patients"
-        %     PlAgent = plot(T_Agens.Date,T_Agens.H,'Color',[0.4660 0.6740 0.1880],'LineWidth',2);
-        % end        
-    
-        if Quantity{q,2} == "Hospitalized patients"
-            PlOff = plot(R.Date,R.H_off_ma,'Color',[0.8500 0.3250 0.0980],'LineWidth',2);
-        end
-
-        Sh = plot_mean_var(T.Date(1:end-1),Mean,Std,[0.9290 0.6940 0.1250],"FaceAlpha",0.2);
-        % plot(T.Date(1:end-1),[Data{q,:}],'Color',[0.9290 0.6940 0.1250])
-        PlRec = plot(R.Date(ldx),Quantity{q,1}(R(ldx,:)),'LineWidth',2,'Color',[0 0.4470 0.7410]);
-        title(Quantity{q,2},"Interpreter","latex","FontSize",16)
-        drawnow
-    end
-end
-Ax(2).YLim(1) = 0;
-Ax(1).YLim(1) = 0;
-
-T.Properties.UserData.Link6 = linkprop(Ax,"XLim");
-Ax(1).XLim = args.XLim;
-
-DRange = R.Date(1):T.Date(end);
-for ax = Ax'
-    plot_vertical_milestone(ax,Date_Start_Pred,"Prediction");
-    ax.XTick = DRange(weekday(DRange) == 1);
-    ax.XMinorGrid = 'on';
-    ax.XAxis.MinorTick = 'off';
-    ax.XAxis.MinorTickValues = DRange;
-
-    if ax ~= Ax(end)
-        ax.XTickLabel = [];
-    end
-end
-
-legend(Ax(end),[PlOff,PlRec,Sh(1),Sh(4)],["Official data","Reconstruction","Pred. -- mean","Pred. -- 95\% CI"],"Interpreter","latex","FontSize",12,"Location","northwest")
-
-TODAY = datestr(date,29);
-DIR = "/home/ppolcz/T/Dropbox/Peti/Munka/01_PPKE_2020/COVID-Elorejelzesek/UIO_and_Opt/UIO_and_Opt_" + TODAY;
-if ~exist(DIR,"dir")
-    mkdir(DIR);
-end
-exportgraphics(fig,DIR + "/Pred_" + TODAY + ".pdf");
-
-Ax(1).XLim(1) = datetime(2021,10,24);
-exportgraphics(fig,DIR + "/Pred_" + TODAY + "_From_2021Okt24.pdf");
-
-Ax(1).XLim(1) = datetime(2020,08,20);
-Ax(4).YLim(2) = 13000;
-exportgraphics(fig,DIR + "/Pred_" + TODAY + "_From_2020Aug20.pdf");
 
 end

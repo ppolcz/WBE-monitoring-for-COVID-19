@@ -15,8 +15,8 @@ end
 Variants = Q.Properties.RowNames;
 Variants = strrep(Variants,"Original","Wild");
 Variants = strrep(Variants,"OmicronBA","BA.");
-Variants = strrep(Variants,"TurnPoint1","BA.5--Tp1");
-Variants = strrep(Variants,"TurnPoint2","Tp2");
+Variants = strrep(Variants,"OmicronBQ","BQ.");
+Variants = strrep(Variants,"BA.5_Tp1","BA.5\,$+$\,School");
 
 % 2022.09.22. (szeptember 22, csütörtök), 13:21
 Idx = find(~ismember(Variants,["Transient","Future" , args.Except]))';

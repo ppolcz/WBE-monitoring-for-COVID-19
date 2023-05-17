@@ -10,7 +10,6 @@ function T = gen_future_nans(T)
 T.H_off_ma(T.Date > T.Properties.UserData.Date_Last_Available_H) = NaN;
 T.H_off(T.Date > T.Properties.UserData.Date_Last_Available_H) = NaN;
 T.D_off(T.Date > T.Properties.UserData.Date_Last_OWID) = NaN;
-T.Szennyviz(T.Date > T.Properties.UserData.Date_Last_Szennyviz) = NaN;
-% T.Szennyviz_Nv(T.Date > T.Properties.UserData.Date_Last_Szennyviz_Nv) = NaN;
+T.WW(T.Date > T.Properties.UserData.Date_Last_WW) = NaN;
 
 end

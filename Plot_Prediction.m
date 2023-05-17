@@ -17,13 +17,13 @@ end
 Plot_Colors
 
 if isempty(args.XLim)
-    args.XLim = [ datetime(2021,11,01) T.Properties.UserData.Date_Last_Szennyviz ];
+    args.XLim = [ datetime(2021,11,01) T.Properties.UserData.Date_Last_WW ];
     % args.XLim = [ datetime(2022,01,01) T.Date(end) ];
 end
 
 fig = figure(1312);
-fig.Position(3:4) = [574 527];
-Tl = tiledlayout(3,args.TileCols,"TileSpacing","tight","Padding","compact","TileIndexing","columnmajor");
+fig.Position(3:4) = [759 1070];
+Tl = tiledlayout(6,args.TileCols,"TileSpacing","tight","Padding","compact","TileIndexing","columnmajor");
 
 Idx0 = T0.Date <= args.Date_Start_Pred;
 IdxF = T0.Date >= args.Date_Start_Pred;
@@ -40,7 +40,7 @@ LegEntries = {
 
 tidx = 1;
 k = 0;
-for q = [1 2 4]
+for q = [1 2 3 4 5 6]
     k = k + 1;
     if q == 1
         Ax = nexttile;
@@ -82,14 +82,7 @@ for q = [1 2 4]
     
     title("\textbf{P" + num2str(k) + ".} " + LegEntries{q,1},"FontSize",11,"Interpreter","latex")
 
-    % PlF = plot(T0.Date(IdxF),Qty{q,1}(T0(IdxF,:)),'--','LineWidth',1.5,'Color',[0 0.4470 0.7410]);
-    % PlF.DisplayName
-    % plot(T0.Date(IdxF),Qty{q,1}(T0(IdxF,:)),'-','Color',[0 0.4470 0.7410]);
-%     legend([Pl0 PlF Sh(1) Sh(4)], LegEntries(q,:), ...
-%         "Interpreter","latex","FontSize",args.FontSize,"Location","northwest")   
-
     if q == 1
-        % for k = 1:4, plot(datetime(1991,03,20),0,'w','DisplayName','~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'); end
         Leg = legend('Interpreter','latex','Location','northoutside','Box','off','FontSize',12,...
             "NumColumns",2);
     end
@@ -100,18 +93,11 @@ end
 Link6 = linkprop(Ax,"XLim");
 Ax(1).XLim = args.XLim;
 
-% for i = 1:numel(Ax)
-%     Pl = plot_vertical_milestone(Ax(i),args.Date_Start_Pred,"Prediction");
-%     Pl.HandleVisibility = "off";
-% end
-
 % -------
 
 Link2 = linkprop(Ax,"XLim");
 Ax(1).XLim = args.XLim;
 drawnow 
-
-% return
 
 Date = min(T0.Date(1),T.Date(1)):max(T.Date(end),T0.Date(end));
 
@@ -128,7 +114,10 @@ for idx = 1:numel(Ax)
     drawnow 
 end
 
-Today = datetime('today','Format','uuuu-MM-dd');
-exportgraphics(fig,"/home/ppolcz/Dropbox/Peti/Munka/01_PPKE_2020/Dokumentaciok/Docs_CsutakB_PhD/07_COVID-Szennyviz/actual/fig/Prediction_v2_" + string(Today) + ".pdf",'ContentType','vector')
+DIR = "Results/fig";
+if ~exist(DIR,"dir")
+    mkdir(DIR)
+end
+exportgraphics(fig,DIR + "/Prediction.pdf",'ContentType','vector')
 
 end
