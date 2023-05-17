@@ -1,8 +1,8 @@
 # https://tex.stackexchange.com/questions/7770/file-extensions-related-to-latex-etc
 
-Data/*
+# Data/*
 
-owid-covid-data
+# owid-covid-data
 
 # Ha veletlenul letrejonne
 home
