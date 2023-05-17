@@ -13,7 +13,7 @@ The computations are based on our previous works [2-4] and an on-going research 
 References
 ----------
 
-[1] Mathieu, Ritchie, Rodés-Guirao, Appel, Giattino, Hasell, Macdonald, Dattani, Beltekian, Ortiz-Ospina and Roser. Coronavirus pandemic (COVID-19). Our World in Data, 2020. URL https://github.com/owid/covid-19-data
+[1] Mathieu, Ritchie, Rodés-Guirao, Appel, Giattino, Hasell, Macdonald, Dattani, Beltekian, Ortiz-Ospina and Roser. Coronavirus pandemic (COVID-19). Our World in Data, 2020. URL https://ourworldindata.org/coronavirus, GitHub-URL https://github.com/owid/covid-19-data
 
 [2] Csutak, B., Polcz, P., Szederkényi, G., 2022. Model-based epidemic data reconstruction using feedback linearization, in: 2022 International Conference on Electrical, Computer and Energy Technologies (ICECET), pp. 1–6. doi:10.1109/ICECET55527.2022.9873061.
 
